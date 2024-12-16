@@ -1,0 +1,90 @@
+---
+- name: Install Apache2, Python dependencies, and pymysql
+  hosts: localhost
+  become: yes
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Apache2
+      apt:
+        name: apache2
+        state: present
+
+    - name: Install Python and dependencies
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - python3
+        - python3-pip
+        - libapache2-mod-wsgi-py3
+        - python3-pymysql
+
+    - name: Enable mod_wsgi for Python script support
+      apache2_module:
+        name: wsgi
+        state: present
+
+    - name: Start and enable Apache2 service
+      service:
+        name: apache2
+        state: started
+        enabled: true
+        
+    - name: Enable CGI module in Apache
+      command: sudo a2enmod cgi
+
+    - name: Verify Python version
+      command: python3 --version
+      register: python_version
+      ignore_errors: yes
+
+    - debug:
+        msg: "Python version installed: {{ python_version.stdout }}"
+
+    - name: Copy Python CGI script to the server
+      copy:
+        content: |
+          #!/usr/bin/python3
+
+          # Turn on debug mode.
+          import cgitb
+          cgitb.enable()
+
+          # Print necessary headers.
+          print("Content-Type: text/html")
+          print()
+
+          # Connect to the database.
+          import pymysql
+          conn = pymysql.connect(
+              db='example_db',
+              user='adminbruker', # Change to a same username as in the terraform.tfvars file
+              passwd='Passord12', # Change to a same password as in the terraform.tfvars file
+              host='10.0.0.4',
+              port=3306)
+          c = conn.cursor()
+
+          # Print the contents of the database.
+          c.execute("SELECT * FROM employees")
+          print([(r[0], r[1]) for r in c.fetchall()])
+        dest: /var/www/html/hello.py
+        mode: '0755'
+
+    - name: Configure Apache to serve Python scripts
+      blockinfile:
+        path: /etc/apache2/sites-available/000-default.conf
+        insertafter: "</VirtualHost>"
+        content: |
+          <Directory /var/www/html>
+              Options +ExecCGI
+              AddHandler cgi-script .py
+              DirectoryIndex hello.py
+          </Directory>
+
+    - name: Restart Apache to apply changes
+      service:
+        name: apache2
+        state: restarted
