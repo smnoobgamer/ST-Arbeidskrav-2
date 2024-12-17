@@ -1,6 +1,6 @@
 # Azure terraform scrip for ST Arbeidskrav 2 for å sette opp nettside med loadblanasert databaser
 
-## forutsetninger
+## Forutsetninger
 
 1. Du har powershell 7
 2. du har instalert terraform
