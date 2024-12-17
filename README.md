@@ -1,4 +1,4 @@
-# Azure terraform scrip for ST Arbeidskrav 2 for å sette opp nettside med loadblanasert databaser
+# Azure terraform scrip for ST Arbeidskrav 2 for å sette opp nettside med loadbalansert databaser
 
 ## Forutsetninger
 
